@@ -20,7 +20,17 @@ const [light1, setLight1] = useState<any>(() => (getSearchParam("l1") as any) ||
 const [light2, setLight2] = useState<any>(() => (getSearchParam("l2") as any) || "몰입");
 const [light3, setLight3] = useState<any>(() => (getSearchParam("l3") as any) || "혼자");
 
-const [shuffle, setShuffle] = useState<number>(() => Number(getSearchParam("sh") || "0"));
+const shLegacy = getSearchParam("sh");
+
+const [shuffleText, setShuffleText] = useState<number>(() =>
+  Number(getSearchParam("sht") || shLegacy || "0")
+);
+const [shuffleBg, setShuffleBg] = useState<number>(() =>
+  Number(getSearchParam("shb") || shLegacy || "0")
+);
+const [templateShift, setTemplateShift] = useState<number>(() =>
+  Number(getSearchParam("tpl") || "0")
+);
 
 useEffect(() => {
   setSearchParams({
@@ -30,9 +40,11 @@ useEffect(() => {
     l1: light1,
     l2: light2,
     l3: light3,
-    sh: String(shuffle || 0),
+    sht: String(shuffleText || 0),
+    shb: String(shuffleBg || 0),
+    tpl: String(templateShift || 0),
   });
-}, [mbti, blood, birth, light1, light2, light3, shuffle]);
+}, [mbti, blood, birth, light1, light2, light3, shuffleText, shuffleBg, templateShift]);
 
   const result = useMemo(() => {
     return buildModeAResult({
@@ -42,9 +54,11 @@ useEffect(() => {
       light1,
       light2,
       light3,
-      shuffle,
+    shuffleText,
+    shuffleBg,
+    templateShift,
     });
-  }, [mbti, blood, birth, light1, light2, light3, shuffle]);
+  }, [mbti, blood, birth, light1, light2, light3, shuffleText, shuffleBg, templateShift]);
 
   const title = useMemo(() => {
     const place = light1 === "카페" ? "카페" : light1 === "집" ? "집" : "도서관";
@@ -91,7 +105,163 @@ useEffect(() => {
     }
   }
 
-  const canShowZodiacHint = birth.length > 0;
+//  const canShowZodiacHint = birth.length > 0;
+
+  const metaLine = useMemo(() => {
+  const parts: string[] = [];
+  if (mbti) parts.push(`MBTI: ${mbti}`);
+  if (blood) parts.push(`혈액형: ${blood}형`);
+  if (birth && result.zodiac) parts.push(`별자리: ${result.zodiac} (${result.element})`);
+  if (!birth) parts.push("생년월일을 넣으면 별자리가 나와요");
+  return parts.join("  ·  ");
+}, [mbti, blood, birth, result.zodiac, result.element]);
+
+
+  function CardOverlay({
+  templateId,
+  headline,
+  title,
+  metaLine,
+  strengthA,
+  strengthB,
+  caution,
+  mission,
+}: {
+  templateId: 0 | 1 | 2;
+  headline: string;
+  title: string;
+  metaLine: string;
+  strengthA: string;
+  strengthB: string;
+  caution: string;
+  mission: string;
+}) {
+  // 공통 텍스트 스타일(가독성)
+  const baseWrap: React.CSSProperties = {
+    position: "absolute",
+    inset: 24,
+    color: "white",
+    display: "grid",
+    gap: 10,
+  };
+
+  // Template 0: 기본(상단 타이틀 + 본문 + 하단 미션)
+  if (templateId === 0) {
+    return (
+      <div style={baseWrap}>
+        <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.08 }}>{headline}</div>
+        <div style={{ opacity: 0.95, fontSize: 16, display: "grid", gap: 4 }}>
+          <div>{title}</div>
+          <div style={{ opacity: 0.9, fontSize: 14 }}>{metaLine}</div>
+        </div>
+
+        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+          <div style={{ fontSize: 16, fontWeight: 800 }}>강점</div>
+          <div style={{ fontSize: 15, lineHeight: 1.4 }}>
+            • {strengthA}
+            <br />• {strengthB}
+          </div>
+
+          <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>주의</div>
+          <div style={{ fontSize: 15, lineHeight: 1.4 }}>• {caution}</div>
+        </div>
+
+        <div style={{ marginTop: "auto", display: "grid", gap: 6 }}>
+          <div style={{ fontSize: 16, fontWeight: 900 }}>오늘의 미션</div>
+          <div style={{ fontSize: 15, lineHeight: 1.4 }}>✅ {mission}</div>
+          <div style={{ opacity: 0.85, fontSize: 12 }}>* 재미용 결과</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Template 1: 좌측 패널(메뉴판 느낌)
+  if (templateId === 1) {
+    return (
+      <div style={baseWrap}>
+        <div
+          style={{
+            width: "58%",
+            maxWidth: 360,
+            background: "rgba(0,0,0,0.45)",
+            borderRadius: 18,
+            padding: 14,
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 12, opacity: 0.85, fontWeight: 800 }}>TODAY’S TYPE</div>
+          <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1.1 }}>{headline}</div>
+          <div style={{ opacity: 0.9, fontSize: 14 }}>{title}</div>
+          <div style={{ opacity: 0.75, fontSize: 12 }}>{metaLine}</div>
+
+          <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
+            <div style={{ fontWeight: 900 }}>강점</div>
+            <div style={{ fontSize: 13, lineHeight: 1.35 }}>
+              • {strengthA}
+              <br />• {strengthB}
+            </div>
+
+            <div style={{ fontWeight: 900 }}>미션</div>
+            <div style={{ fontSize: 13, lineHeight: 1.35 }}>✅ {mission}</div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: "auto", opacity: 0.85, fontSize: 12 }}>
+          * 재미용 결과
+        </div>
+      </div>
+    );
+  }
+
+  // Template 2: 배지 + 하단 시트(스티커 느낌)
+  return (
+    <div style={baseWrap}>
+      <div
+        style={{
+          alignSelf: "start",
+          justifySelf: "start",
+          background: "rgba(0,0,0,0.45)",
+          borderRadius: 999,
+          padding: "8px 12px",
+          fontWeight: 900,
+          fontSize: 13,
+        }}
+      >
+        오늘의 타입
+      </div>
+
+      <div style={{ fontSize: 34, fontWeight: 950, lineHeight: 1.05 }}>{headline}</div>
+      <div style={{ opacity: 0.9, fontSize: 14 }}>{metaLine}</div>
+
+      <div style={{ marginTop: "auto" }}>
+        <div
+          style={{
+            background: "rgba(0,0,0,0.50)",
+            borderRadius: 18,
+            padding: 14,
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 900 }}>{title}</div>
+
+          <div style={{ fontSize: 13, lineHeight: 1.35 }}>
+            <b>강점</b> • {strengthA} / {strengthB}
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.35 }}>
+            <b>주의</b> • {caution}
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.35 }}>
+            <b>미션</b> • ✅ {mission}
+          </div>
+
+          <div style={{ opacity: 0.85, fontSize: 12 }}>* 재미용 결과</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
   
 
@@ -163,12 +333,28 @@ useEffect(() => {
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button
-            onClick={() => setShuffle((s) => s + 1)}
+          <button onClick={() => setShuffleText((s) => s + 1)} style={{ padding: "10px 14px", borderRadius: 12 }}>
+            문구만 셔플
+            </button>
+
+            <button onClick={() => setShuffleBg((s) => s + 1)} style={{ padding: "10px 14px", borderRadius: 12 }}>
+            배경만 셔플
+            </button>
+
+            <button
+            onClick={() => {
+                setShuffleText((s) => s + 1);
+                setShuffleBg((s) => s + 1);
+            }}
             style={{ padding: "10px 14px", borderRadius: 12 }}
-          >
-            결과 다시 뽑기(셔플)
-          </button>
+            >
+            둘 다 셔플
+            </button>
+
+            <button onClick={() => setTemplateShift((s) => s + 1)} style={{ padding: "10px 14px", borderRadius: 12 }}>
+            템플릿 바꾸기
+            </button>
+
 
           <button
             onClick={copyResultText}
@@ -225,52 +411,17 @@ useEffect(() => {
               "linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.08) 40%, rgba(0,0,0,0.35))",
           }}
         />
-        <div
-          style={{
-            position: "absolute",
-            inset: 24,
-            color: "white",
-            display: "grid",
-            gap: 10,
-          }}
-        >
-          <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.08 }}>
-            {result.headline}
-          </div>
 
-          <div style={{ opacity: 0.95, fontSize: 16, display: "grid", gap: 4 }}>
-            <div>{title}</div>
-            <div style={{ opacity: 0.9, fontSize: 14 }}>
-              {mbti ? `MBTI: ${mbti}  · ` : ""}
-              {blood ? `혈액형: ${blood}형  · ` : ""}
-              {canShowZodiacHint
-                ? result.zodiac
-                  ? `별자리: ${result.zodiac} (${result.element})`
-                  : "별자리 계산중…"
-                : "생년월일을 넣으면 별자리가 나와요"}
-            </div>
-          </div>
-
-          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-            <div style={{ fontSize: 16, fontWeight: 800 }}>강점</div>
-            <div style={{ fontSize: 15, lineHeight: 1.4 }}>
-              • {result.strengthA}
-              <br />• {result.strengthB}
-            </div>
-
-            <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>주의</div>
-            <div style={{ fontSize: 15, lineHeight: 1.4 }}>• {result.caution}</div>
-          </div>
-
-          <div style={{ marginTop: "auto", display: "grid", gap: 6 }}>
-            <div style={{ fontSize: 16, fontWeight: 900 }}>오늘의 미션</div>
-            <div style={{ fontSize: 15, lineHeight: 1.4 }}>✅ {result.mission}</div>
-
-            <div style={{ opacity: 0.85, fontSize: 12 }}>
-              * 재미용 결과 카드 (진단/채용/의학적 판단 용도 아님)
-            </div>
-          </div>
-        </div>
+        <CardOverlay
+            templateId={result.templateId}
+            headline={result.headline}
+            title={title}
+            metaLine={metaLine}
+            strengthA={result.strengthA}
+            strengthB={result.strengthB}
+            caution={result.caution}
+            mission={result.mission}
+        />
       </div>
     </div>
   );

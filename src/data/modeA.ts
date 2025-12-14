@@ -224,13 +224,17 @@ export type ModeAInput = {
   light1: "카페" | "집" | "도서관";
   light2: "몰입" | "루틴" | "즉흥";
   light3: "혼자" | "사람들과" | "반반";
-  shuffle: number; // 결과 변주
+  shuffleText: number;  // 문구 셔플
+  shuffleBg: number;    // 배경 셔플
+  templateShift: number; // 템플릿(레이아웃) 셔플
 };
 
 export type ModeAResult = {
   zodiac: string;
   element: ElementType;
   bg: string;
+  templateId: 0 | 1 | 2;
+
   headline: string;
   strengthA: string;
   strengthB: string;
@@ -243,21 +247,27 @@ export function buildModeAResult(input: ModeAInput): ModeAResult {
   const element = elementFromZodiac(zodiac);
 
   const baseKey = `${input.mbti}|${input.blood}|${input.birth}|${input.light1}|${input.light2}|${input.light3}|${element}`;
-  const seed = (hashStringToUint32(baseKey) + (input.shuffle >>> 0)) >>> 0;
-  const rnd = mulberry32(seed);
+  const base = hashStringToUint32(baseKey);
+
+  const rndText = mulberry32((base + (input.shuffleText >>> 0)) >>> 0);
+  const rndBg = mulberry32((base + 101 + (input.shuffleBg >>> 0)) >>> 0);
+  const rndTpl = mulberry32((base + 202 + (input.templateShift >>> 0)) >>> 0);
 
   const bank = BANK[element] ?? BANK["미지정"];
-  const headline = pick(bank.title, rnd);
-  const strengthA = pick(bank.strengths, rnd);
-  let strengthB = pick(bank.strengths, rnd);
-  // strengthA와 중복되면 한 번 더
-  if (strengthB === strengthA && bank.strengths.length > 1) strengthB = pick(bank.strengths, rnd);
 
-  const caution = pick(bank.caution, rnd);
-  const mission = pick(bank.mission, rnd);
+  const headline = pick(bank.title, rndText);
+  const strengthA = pick(bank.strengths, rndText);
+  let strengthB = pick(bank.strengths, rndText);
+  if (strengthB === strengthA && bank.strengths.length > 1) strengthB = pick(bank.strengths, rndText);
+
+  const caution = pick(bank.caution, rndText);
+  const mission = pick(bank.mission, rndText);
 
   const candidates = CARD_BG.byElement[element];
-  const bg = candidates.length ? pick(candidates, rnd) : pick(CARD_BG.all, rnd);
+  const bg = candidates.length ? pick(candidates, rndBg) : pick(CARD_BG.all, rndBg);
 
-  return { zodiac, element, bg, headline, strengthA, strengthB, caution, mission };
+  const templateId = (Math.floor(rndTpl() * 3) as 0 | 1 | 2);
+
+  return { zodiac, element, bg, templateId, headline, strengthA, strengthB, caution, mission };
 }
+
