@@ -2,83 +2,56 @@ import { Routes, Route, Link } from "react-router-dom";
 import ModeA from "./pages/ModeA";
 import ModeB from "./pages/ModeB";
 import Gallery from "./pages/Gallery";
+import { Container, Card, Header } from "./components/ui";
 
 function Home() {
   return (
-    <div style={{ maxWidth: 920, margin: "0 auto", padding: 20, display: "grid", gap: 16 }}>
-      <div style={{ display: "grid", gap: 8 }}>
-        <h1 style={{ margin: 0 }}>Personality Mixer</h1>
-        <div style={{ opacity: 0.8 }}>
-          가입 없이 바로 사용 가능한 “재미용(A)” / “신뢰용(B)” 성향 리포트
+    <Container>
+      <div className="page">
+        <Header
+          title="Personality Mixer"
+          subtitle="가입 없이 바로: A(재미용) 감성 카드 · B(신뢰용) 업무 리포트"
+          tag={<span>공유 링크로 결과 저장 · 무료 정적 사이트</span>}
+        />
+
+        <div className="homeGrid">
+          <Link to="/a" className="tile a">
+            <div className="tTitle">A 모드 · 재미용 카드</div>
+            <div className="tDesc">선택 + 자동 계산만으로 오늘의 타입을 감성 카드로 생성</div>
+            <div className="badge">MBTI/혈액형/별자리 + 가벼운 선택</div>
+          </Link>
+
+          <Link to="/b" className="tile b">
+            <div className="tTitle">B 모드 · 신뢰용 리포트</div>
+            <div className="tDesc">객관식 답변 기반으로 업무 환경/역할/액션플랜을 제시</div>
+            <div className="badge">점수 분포 · 신뢰도 · 상위 2개 혼합</div>
+          </Link>
         </div>
-      </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Link
-          to="/a"
-          style={{
-            textDecoration: "none",
-            color: "inherit",
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 16,
-            padding: 16,
-            display: "grid",
-            gap: 8,
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 900 }}>A 모드 (재미용)</div>
-          <div style={{ opacity: 0.8 }}>선택 + 자동 계산만으로 오늘의 캐릭터 카드 생성</div>
-          <div style={{ opacity: 0.7, fontSize: 13 }}>MBTI/혈액형/별자리 + 가벼운 선택 3개</div>
-        </Link>
-
-        <Link
-          to="/b"
-          style={{
-            textDecoration: "none",
-            color: "inherit",
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 16,
-            padding: 16,
-            display: "grid",
-            gap: 8,
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 900 }}>B 모드 (신뢰용)</div>
-          <div style={{ opacity: 0.8 }}>객관식 답변으로 업무 환경/역할 추천</div>
-          <div style={{ opacity: 0.7, fontSize: 13 }}>직업명 찍기 X · 환경/역할 중심</div>
-        </Link>
-      </div>
-
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-      <Link
-        to="/gallery"
-        style={{
-          textDecoration: "none",
-          color: "inherit",
-          border: "1px solid rgba(0,0,0,0.12)",
-          borderRadius: 14,
-          padding: "10px 14px",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        예시 결과 갤러리 보기 →
-      </Link>
-    </div>
-
-
-      <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 16, padding: 14 }}>
-        <div style={{ fontWeight: 900, marginBottom: 6 }}>공유</div>
-        <div style={{ opacity: 0.8 }}>
-          각 모드에서 <b>공유 링크 복사</b>를 누르면 결과가 URL에 저장돼서 그대로 공유할 수 있어요.
+        <div className="btnRow">
+          <Link to="/gallery" className="btn ghost">
+            예시 결과 갤러리 보기 →
+          </Link>
+          <a
+            className="btn ghost"
+            href="https://github.com/"
+            onClick={(e) => e.preventDefault()}
+            style={{ opacity: 0.75 }}
+            title="필요하면 나중에 깃허브 링크/소개 페이지로 교체"
+          >
+            (옵션) 소개/제작기 링크 자리
+          </a>
         </div>
-      </div>
 
-      <div style={{ opacity: 0.7, fontSize: 12 }}>
-        * 본 서비스는 재미/자기이해용이며, 채용/의학/진단의 근거로 사용하지 마세요.
+        <Card>
+          <div className="cardTitle">주의</div>
+          <p className="cardDesc">
+            본 서비스는 재미/자기이해용이며, 채용/의학/진단의 근거로 사용하지 마세요.
+            공유 링크는 입력/답변 상태를 URL에 저장해 재현하기 위한 용도입니다.
+          </p>
+        </Card>
       </div>
-    </div>
+    </Container>
   );
 }
 

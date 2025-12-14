@@ -1,62 +1,55 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as htmlToImage from "html-to-image";
-import {
-  BLOOD_OPTIONS,
-  MBTI_OPTIONS,
-  buildModeAResult
-} from "../data/modeA";
-import { useEffect } from "react";
+import { Link } from "react-router-dom";
+
+import { BLOOD_OPTIONS, MBTI_OPTIONS, buildModeAResult } from "../data/modeA";
 import { getSearchParam, setSearchParams, copyToClipboard } from "../utils/urlState";
-import { ACard } from "../components/ACard";
 import { dataUrlToBlob, shareFileOrFallback } from "../utils/share";
+import { ACard } from "../components/ACard";
+import { Container, Card, Header } from "../components/ui";
 
-
-export default function ModeA() {
-    
-  const cardRef = useRef<HTMLDivElement>(null);
-
-const [mbti, setMbti] = useState<string>(() => getSearchParam("mbti"));
-const [blood, setBlood] = useState<string>(() => getSearchParam("blood"));
-const [birth, setBirth] = useState<string>(() => getSearchParam("birth"));
-
-const [light1, setLight1] = useState<any>(() => (getSearchParam("l1") as any) || "카페");
-const [light2, setLight2] = useState<any>(() => (getSearchParam("l2") as any) || "몰입");
-const [light3, setLight3] = useState<any>(() => (getSearchParam("l3") as any) || "혼자");
-
-const shLegacy = getSearchParam("sh");
-
-const [shuffleText, setShuffleText] = useState<number>(() =>
-  Number(getSearchParam("sht") || shLegacy || "0")
-);
-const [shuffleBg, setShuffleBg] = useState<number>(() =>
-  Number(getSearchParam("shb") || shLegacy || "0")
-);
-const [templateShift, setTemplateShift] = useState<number>(() =>
-  Number(getSearchParam("tpl") || "0")
-);
+type Light1 = "카페" | "집" | "도서관";
+type Light2 = "몰입" | "루틴" | "즉흥";
+type Light3 = "혼자" | "사람들과" | "반반";
 
 const FONT_MAP: Record<string, string> = {
   system: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
   serif: "ui-serif, Georgia, 'Times New Roman', serif",
   mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
 };
-const [fontKey, setFontKey] = useState<string>(() => getSearchParam("font") || "system");
 
+export default function ModeA() {
+  const cardRef = useRef<HTMLDivElement>(null);
 
-useEffect(() => {
-  setSearchParams({
-    mbti,
-    blood,
-    birth,
-    l1: light1,
-    l2: light2,
-    l3: light3,
-    sht: String(shuffleText || 0),
-    shb: String(shuffleBg || 0),
-    tpl: String(templateShift || 0),
-    font: fontKey,
-  });
-}, [mbti, blood, birth, light1, light2, light3, shuffleText, shuffleBg, templateShift]);
+  const [mbti, setMbti] = useState<string>(() => getSearchParam("mbti"));
+  const [blood, setBlood] = useState<string>(() => getSearchParam("blood"));
+  const [birth, setBirth] = useState<string>(() => getSearchParam("birth"));
+
+  const [light1, setLight1] = useState<Light1>(() => (getSearchParam("l1") as Light1) || "카페");
+  const [light2, setLight2] = useState<Light2>(() => (getSearchParam("l2") as Light2) || "몰입");
+  const [light3, setLight3] = useState<Light3>(() => (getSearchParam("l3") as Light3) || "혼자");
+
+  const shLegacy = getSearchParam("sh");
+  const [shuffleText, setShuffleText] = useState<number>(() => Number(getSearchParam("sht") || shLegacy || "0"));
+  const [shuffleBg, setShuffleBg] = useState<number>(() => Number(getSearchParam("shb") || shLegacy || "0"));
+  const [templateShift, setTemplateShift] = useState<number>(() => Number(getSearchParam("tpl") || "0"));
+
+  const [fontKey, setFontKey] = useState<string>(() => getSearchParam("font") || "system");
+
+  useEffect(() => {
+    setSearchParams({
+      mbti,
+      blood,
+      birth,
+      l1: light1,
+      l2: light2,
+      l3: light3,
+      sht: String(shuffleText || 0),
+      shb: String(shuffleBg || 0),
+      tpl: String(templateShift || 0),
+      font: fontKey,
+    });
+  }, [mbti, blood, birth, light1, light2, light3, shuffleText, shuffleBg, templateShift, fontKey]);
 
   const result = useMemo(() => {
     return buildModeAResult({
@@ -66,18 +59,26 @@ useEffect(() => {
       light1,
       light2,
       light3,
-    shuffleText,
-    shuffleBg,
-    templateShift,
-    });
+      shuffleText,
+      shuffleBg,
+      templateShift,
+    } as any);
   }, [mbti, blood, birth, light1, light2, light3, shuffleText, shuffleBg, templateShift]);
 
   const title = useMemo(() => {
     const place = light1 === "카페" ? "카페" : light1 === "집" ? "집" : "도서관";
     const rhythm = light2 === "몰입" ? "몰입" : light2 === "루틴" ? "루틴" : "즉흥";
-    const energy = light3;
-    return `${place} ${rhythm} · ${energy} 타입`;
+    return `${place} ${rhythm} · ${light3} 타입`;
   }, [light1, light2, light3]);
+
+  const metaLine = useMemo(() => {
+    const parts: string[] = [];
+    if (mbti) parts.push(`MBTI: ${mbti}`);
+    if (blood) parts.push(`혈액형: ${blood}형`);
+    if (birth && result.zodiac) parts.push(`별자리: ${result.zodiac} (${result.element})`);
+    if (!birth) parts.push("생년월일을 넣으면 별자리가 나와요");
+    return parts.join("  ·  ");
+  }, [mbti, blood, birth, result.zodiac, result.element]);
 
   async function downloadCard() {
     if (!cardRef.current) return;
@@ -89,38 +90,35 @@ useEffect(() => {
   }
 
   async function shareCard() {
-  if (!cardRef.current) return;
+    if (!cardRef.current) return;
 
-  // 카드 DOM → PNG(dataUrl)
-  const dataUrl = await htmlToImage.toPng(cardRef.current, { pixelRatio: 2 });
-  const blob = dataUrlToBlob(dataUrl);
-  const file = new File([blob], "A-result-card.png", { type: "image/png" });
+    const dataUrl = await htmlToImage.toPng(cardRef.current, { pixelRatio: 2 });
+    const blob = dataUrlToBlob(dataUrl);
+    const file = new File([blob], "A-result-card.png", { type: "image/png" });
 
-  const shareText = `${result.headline}\n${title}\n(재미용 결과 카드)`;
-  const shareUrl = window.location.href;
+    const shareText = `${result.headline}\n${title}\n(재미용 결과 카드)`;
+    const shareUrl = window.location.href;
 
-  await shareFileOrFallback({
-    file,
-    title: "Personality Mixer - A 결과",
-    text: shareText,
-    url: shareUrl,
-    onFallback: async () => {
-      // fallback: 다운로드 + 공유링크 복사 안내
-      const link = document.createElement("a");
-      link.download = "A-result-card.png";
-      link.href = dataUrl;
-      link.click();
+    await shareFileOrFallback({
+      file,
+      title: "Personality Mixer - A 결과",
+      text: shareText,
+      url: shareUrl,
+      onFallback: async () => {
+        const link = document.createElement("a");
+        link.download = "A-result-card.png";
+        link.href = dataUrl;
+        link.click();
 
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert("공유가 지원되지 않아 카드 다운로드 + 링크 복사를 대신했어요!");
-      } catch {
-        alert("공유가 지원되지 않아 카드 다운로드를 대신했어요. (링크는 주소창에서 복사 가능)");
-      }
-    },
-  });
-}
-
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          alert("공유가 지원되지 않아 카드 다운로드 + 링크 복사를 대신했어요!");
+        } catch {
+          alert("공유가 지원되지 않아 카드 다운로드를 대신했어요. (링크는 주소창에서 복사 가능)");
+        }
+      },
+    });
+  }
 
   async function copyResultText() {
     const lines: string[] = [];
@@ -135,12 +133,10 @@ useEffect(() => {
     lines.push(`* 재미용 결과(진단/채용 판단 용도 아님)`);
 
     const text = lines.join("\n");
-
     try {
       await navigator.clipboard.writeText(text);
       alert("결과 텍스트를 복사했어요!");
     } catch {
-      // fallback
       const ta = document.createElement("textarea");
       ta.value = text;
       document.body.appendChild(ta);
@@ -151,165 +147,169 @@ useEffect(() => {
     }
   }
 
-//  const canShowZodiacHint = birth.length > 0;
-
-  const metaLine = useMemo(() => {
-  const parts: string[] = [];
-  if (mbti) parts.push(`MBTI: ${mbti}`);
-  if (blood) parts.push(`혈액형: ${blood}형`);
-  if (birth && result.zodiac) parts.push(`별자리: ${result.zodiac} (${result.element})`);
-  if (!birth) parts.push("생년월일을 넣으면 별자리가 나와요");
-  return parts.join("  ·  ");
-}, [mbti, blood, birth, result.zodiac, result.element]);
-  
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "grid", gap: 6 }}>
-        <h2 style={{ margin: 0 }}>A 모드 (재미용)</h2>
-        <div style={{ opacity: 0.8 }}>
-          선택 + 자동 계산만으로 “오늘의 캐릭터”를 뽑아줘요.
-        </div>
-      </div>
-
-      {/* 입력 */}
-      <div style={{ display: "grid", gap: 10, maxWidth: 560 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          MBTI (선택)
-          <select value={mbti} onChange={(e) => setMbti(e.target.value)}>
-            {MBTI_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v === "" ? "선택 안 함" : v}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          혈액형 (선택)
-          <select value={blood} onChange={(e) => setBlood(e.target.value)}>
-            {BLOOD_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v === "" ? "선택 안 함" : `${v}형`}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          생년월일 (별자리 자동)
-          <input type="date" value={birth} onChange={(e) => setBirth(e.target.value)} />
-        </label>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-          <label style={{ display: "grid", gap: 6 }}>
-            선호 장소
-            <select value={light1} onChange={(e) => setLight1(e.target.value as any)}>
-              <option value="카페">카페</option>
-              <option value="집">집</option>
-              <option value="도서관">도서관</option>
-            </select>
-          </label>
-
-          <label style={{ display: "grid", gap: 6 }}>
-            작업 리듬
-            <select value={light2} onChange={(e) => setLight2(e.target.value as any)}>
-              <option value="몰입">몰입</option>
-              <option value="루틴">루틴</option>
-              <option value="즉흥">즉흥</option>
-            </select>
-          </label>
-
-          <label style={{ display: "grid", gap: 6 }}>
-            에너지
-            <select value={light3} onChange={(e) => setLight3(e.target.value as any)}>
-              <option value="혼자">혼자</option>
-              <option value="사람들과">사람들과</option>
-              <option value="반반">반반</option>
-            </select>
-          </label>
-          <label style={{ display: "grid", gap: 6 }}>
-            카드 폰트
-            <select value={fontKey} onChange={(e) => setFontKey(e.target.value)}>
-                <option value="system">기본</option>
-                <option value="serif">Serif</option>
-                <option value="mono">Mono</option>
-            </select>
-        </label>
-
-        </div>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button onClick={() => setShuffleText((s) => s + 1)} style={{ padding: "10px 14px", borderRadius: 12 }}>
-            문구만 셔플
-            </button>
-
-            <button onClick={() => setShuffleBg((s) => s + 1)} style={{ padding: "10px 14px", borderRadius: 12 }}>
-            배경만 셔플
-            </button>
-
-            <button
-            onClick={() => {
-                setShuffleText((s) => s + 1);
-                setShuffleBg((s) => s + 1);
-            }}
-            style={{ padding: "10px 14px", borderRadius: 12 }}
-            >
-            둘 다 셔플
-            </button>
-
-            <button onClick={() => setTemplateShift((s) => s + 1)} style={{ padding: "10px 14px", borderRadius: 12 }}>
-            템플릿 바꾸기
-            </button>
-
-
-          <button
-            onClick={copyResultText}
-            style={{ padding: "10px 14px", borderRadius: 12 }}
-          >
-            결과 텍스트 복사
-          </button>
-
-          <button
-            onClick={downloadCard}
-            style={{ padding: "10px 14px", borderRadius: 12 }}
-          >
-            카드 이미지 다운로드(PNG)
-          </button>
-          <button onClick={shareCard} style={{ padding: "10px 14px", borderRadius: 12 }}>
-            공유하기(모바일)
-            </button>
-          <button
-            onClick={async () => {
-                try {
-                await copyToClipboard(window.location.href);
-                alert("공유 링크를 복사했어요!");
-                } catch {
-                alert("복사 권한이 없어요. 주소창 URL을 직접 복사해 주세요.");
-                }
-            }}
-            style={{ padding: "10px 14px", borderRadius: 12 }}
-            >
-            공유 링크 복사
-            </button>
-        </div>
-      </div>
-
-      {/* 카드 미리보기 */}
-      <div ref={cardRef as any}>
-        <ACard
-            bg={result.bg}
-            templateId={result.templateId}
-            headline={result.headline}
-            title={title}
-            metaLine={metaLine}
-            strengthA={result.strengthA}
-            strengthB={result.strengthB}
-            caution={result.caution}
-            mission={result.mission}
-            fontFamily={FONT_MAP[fontKey] ?? FONT_MAP.system}
+    <Container>
+      <div className="page page--a">
+        <Header
+          title="A 모드"
+          subtitle="감성 카드 스튜디오 — 선택 + 자동 계산으로 오늘의 타입을 카드로 만들어줘요."
+          tag={
+            <span style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link to="/" style={{ textDecoration: "none" }}>홈</Link>
+              <span style={{ opacity: 0.6 }}>·</span>
+              <Link to="/gallery" style={{ textDecoration: "none" }}>예시 갤러리</Link>
+            </span>
+          }
         />
-        </div>
 
-    </div>
+        <div className="split">
+          {/* 좌: 컨트롤 패널 */}
+          <div style={{ display: "grid", gap: 12 }}>
+            <Card>
+              <div className="cardTitle">입력</div>
+              <div className="formGrid">
+                <label className="label">
+                  <span>MBTI (선택)</span>
+                  <select className="select" value={mbti} onChange={(e) => setMbti(e.target.value)}>
+                    {MBTI_OPTIONS.map((v) => (
+                      <option key={v} value={v}>{v === "" ? "선택 안 함" : v}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="label">
+                  <span>혈액형 (선택)</span>
+                  <select className="select" value={blood} onChange={(e) => setBlood(e.target.value)}>
+                    {BLOOD_OPTIONS.map((v) => (
+                      <option key={v} value={v}>{v === "" ? "선택 안 함" : `${v}형`}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="label">
+                  <span>생년월일 (별자리 자동)</span>
+                  <input className="input" type="date" value={birth} onChange={(e) => setBirth(e.target.value)} />
+                </label>
+
+                <div className="triGrid">
+                  <label className="label">
+                    <span>선호 장소</span>
+                    <select className="select" value={light1} onChange={(e) => setLight1(e.target.value as Light1)}>
+                      <option value="카페">카페</option>
+                      <option value="집">집</option>
+                      <option value="도서관">도서관</option>
+                    </select>
+                  </label>
+
+                  <label className="label">
+                    <span>작업 리듬</span>
+                    <select className="select" value={light2} onChange={(e) => setLight2(e.target.value as Light2)}>
+                      <option value="몰입">몰입</option>
+                      <option value="루틴">루틴</option>
+                      <option value="즉흥">즉흥</option>
+                    </select>
+                  </label>
+
+                  <label className="label">
+                    <span>에너지</span>
+                    <select className="select" value={light3} onChange={(e) => setLight3(e.target.value as Light3)}>
+                      <option value="혼자">혼자</option>
+                      <option value="사람들과">사람들과</option>
+                      <option value="반반">반반</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label className="label">
+                  <span>카드 폰트</span>
+                  <select className="select" value={fontKey} onChange={(e) => setFontKey(e.target.value)}>
+                    <option value="system">기본</option>
+                    <option value="serif">Serif</option>
+                    <option value="mono">Mono</option>
+                  </select>
+                </label>
+
+                <div className="divider" />
+
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div className="badge">셔플</div>
+                  <div className="btnRow">
+                    <button className="btn a" onClick={() => setShuffleText((s) => s + 1)}>문구만</button>
+                    <button className="btn a" onClick={() => setShuffleBg((s) => s + 1)}>배경만</button>
+                    <button
+                      className="btn a"
+                      onClick={() => { setShuffleText((s) => s + 1); setShuffleBg((s) => s + 1); }}
+                    >
+                      둘 다
+                    </button>
+                    <button className="btn a" onClick={() => setTemplateShift((s) => s + 1)}>템플릿</button>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
+                  <div className="badge">내보내기</div>
+                  <div className="btnRow">
+                    <button className="btn primary" onClick={shareCard}>공유하기(모바일)</button>
+                    <button className="btn" onClick={downloadCard}>PNG 다운로드</button>
+                    <button className="btn" onClick={copyResultText}>텍스트 복사</button>
+                    <button
+                      className="btn"
+                      onClick={async () => {
+                        try {
+                          await copyToClipboard(window.location.href);
+                          alert("공유 링크를 복사했어요!");
+                        } catch {
+                          alert("복사 권한이 없어요. 주소창 URL을 직접 복사해 주세요.");
+                        }
+                      }}
+                    >
+                      링크 복사
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="cardTitle">요약</div>
+              <p className="cardDesc" style={{ marginBottom: 10 }}>
+                {result.headline}
+              </p>
+              <div className="badge">{title}</div>
+              <div style={{ marginTop: 10 }} className="help">
+                * A 모드는 “감성/재미” 중심 카드예요. (진단/채용 판단 용도 아님)
+              </div>
+            </Card>
+          </div>
+
+          {/* 우: 프리뷰 */}
+          <div className="sticky" style={{ display: "grid", gap: 12 }}>
+            <Card pad={false}>
+              <div ref={cardRef as any} style={{ padding: 12 }}>
+                <ACard
+                  bg={result.bg}
+                  templateId={result.templateId}
+                  headline={result.headline}
+                  title={title}
+                  metaLine={metaLine}
+                  strengthA={result.strengthA}
+                  strengthB={result.strengthB}
+                  caution={result.caution}
+                  mission={result.mission}
+                  fontFamily={FONT_MAP[fontKey] ?? FONT_MAP.system}
+                />
+              </div>
+            </Card>
+
+            <Card>
+              <div className="cardTitle">공유 팁</div>
+              <p className="cardDesc">
+                “배경만 셔플”로 카드 톤을 고르고 → “공유하기(모바일)”로 바로 보내면 가장 자연스럽게 퍼져요.
+              </p>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </Container>
   );
 }

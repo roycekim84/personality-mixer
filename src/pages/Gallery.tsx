@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { buildModeAResult } from "../data/modeA";
 import { ACard } from "../components/ACard";
+import { Container, Card, Header } from "../components/ui";
 
 const FONT = "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
 
@@ -15,68 +16,82 @@ const samplesA = [
 
 export default function Gallery() {
   return (
-    <div style={{ maxWidth: 980, margin: "0 auto", padding: 20, display: "grid", gap: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>예시 결과 갤러리</h2>
-        <Link to="/" style={{ opacity: 0.8 }}>홈으로</Link>
+    <Container>
+      <div className="page">
+        <Header
+          title="예시 결과 갤러리"
+          subtitle="클릭하면 해당 설정으로 A 모드가 바로 열려요."
+          tag={
+            <span style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link to="/" style={{ textDecoration: "none" }}>홈</Link>
+              <span style={{ opacity: 0.6 }}>·</span>
+              <Link to="/a" style={{ textDecoration: "none" }}>A 모드</Link>
+              <span style={{ opacity: 0.6 }}>·</span>
+              <Link to="/b" style={{ textDecoration: "none" }}>B 모드</Link>
+            </span>
+          }
+        />
+
+        <Card>
+          <div className="cardTitle">팁</div>
+          <p className="cardDesc">
+            마음에 드는 톤을 찾았으면 A 모드에서 “배경만 셔플”로 분위기를 고정하고 공유해보세요.
+          </p>
+        </Card>
+
+        <div className="galleryGrid">
+          {samplesA.map((s, idx) => {
+            const result = buildModeAResult({
+              mbti: s.mbti,
+              blood: s.blood,
+              birth: s.birth,
+              light1: s.l1 as any,
+              light2: s.l2 as any,
+              light3: s.l3 as any,
+              shuffleText: s.sht,
+              shuffleBg: s.shb,
+              templateShift: s.tpl,
+            } as any);
+
+            const title = `${s.l1} ${s.l2} · ${s.l3} 타입`;
+            const metaLine =
+              `${s.mbti ? `MBTI: ${s.mbti} · ` : ""}${s.blood ? `혈액형: ${s.blood}형 · ` : ""}` +
+              `${result.zodiac ? `별자리: ${result.zodiac} (${result.element})` : ""}`;
+
+            const qs = new URLSearchParams({
+              mbti: s.mbti,
+              blood: s.blood,
+              birth: s.birth,
+              l1: s.l1,
+              l2: s.l2,
+              l3: s.l3,
+              sht: String(s.sht),
+              shb: String(s.shb),
+              tpl: String(s.tpl),
+              font: "system",
+            }).toString();
+
+            return (
+              <Link key={idx} to={`/a?${qs}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <div className="card" style={{ padding: 10, borderRadius: 18 }}>
+                  <ACard
+                    bg={result.bg}
+                    templateId={result.templateId}
+                    headline={result.headline}
+                    title={title}
+                    metaLine={metaLine}
+                    strengthA={result.strengthA}
+                    strengthB={result.strengthB}
+                    caution={result.caution}
+                    mission={result.mission}
+                    fontFamily={FONT}
+                  />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
-
-      <div style={{ opacity: 0.8 }}>
-        클릭하면 해당 예시 설정으로 바로 이동해요.
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-        {samplesA.map((s, idx) => {
-          const result = buildModeAResult({
-            mbti: s.mbti,
-            blood: s.blood,
-            birth: s.birth,
-            light1: s.l1 as any,
-            light2: s.l2 as any,
-            light3: s.l3 as any,
-            shuffleText: s.sht,
-            shuffleBg: s.shb,
-            templateShift: s.tpl,
-          });
-
-          const title = `${s.l1} ${s.l2} · ${s.l3} 타입`;
-          const metaLine =
-            `${s.mbti ? `MBTI: ${s.mbti} · ` : ""}${s.blood ? `혈액형: ${s.blood}형 · ` : ""}` +
-            `${result.zodiac ? `별자리: ${result.zodiac} (${result.element})` : ""}`;
-
-          const qs = new URLSearchParams({
-            mbti: s.mbti,
-            blood: s.blood,
-            birth: s.birth,
-            l1: s.l1,
-            l2: s.l2,
-            l3: s.l3,
-            sht: String(s.sht),
-            shb: String(s.shb),
-            tpl: String(s.tpl),
-            font: "system",
-          }).toString();
-
-          return (
-            <Link key={idx} to={`/a?${qs}`} style={{ textDecoration: "none", color: "inherit" }}>
-              <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 16, padding: 10 }}>
-                <ACard
-                  bg={result.bg}
-                  templateId={result.templateId}
-                  headline={result.headline}
-                  title={title}
-                  metaLine={metaLine}
-                  strengthA={result.strengthA}
-                  strengthB={result.strengthB}
-                  caution={result.caution}
-                  mission={result.mission}
-                  fontFamily={FONT}
-                />
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
+    </Container>
   );
 }
