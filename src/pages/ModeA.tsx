@@ -8,6 +8,8 @@ import {
 import { useEffect } from "react";
 import { getSearchParam, setSearchParams, copyToClipboard } from "../utils/urlState";
 import { ACard } from "../components/ACard";
+import { dataUrlToBlob, shareFileOrFallback } from "../utils/share";
+
 
 export default function ModeA() {
     
@@ -85,6 +87,40 @@ useEffect(() => {
     link.href = dataUrl;
     link.click();
   }
+
+  async function shareCard() {
+  if (!cardRef.current) return;
+
+  // 카드 DOM → PNG(dataUrl)
+  const dataUrl = await htmlToImage.toPng(cardRef.current, { pixelRatio: 2 });
+  const blob = dataUrlToBlob(dataUrl);
+  const file = new File([blob], "A-result-card.png", { type: "image/png" });
+
+  const shareText = `${result.headline}\n${title}\n(재미용 결과 카드)`;
+  const shareUrl = window.location.href;
+
+  await shareFileOrFallback({
+    file,
+    title: "Personality Mixer - A 결과",
+    text: shareText,
+    url: shareUrl,
+    onFallback: async () => {
+      // fallback: 다운로드 + 공유링크 복사 안내
+      const link = document.createElement("a");
+      link.download = "A-result-card.png";
+      link.href = dataUrl;
+      link.click();
+
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("공유가 지원되지 않아 카드 다운로드 + 링크 복사를 대신했어요!");
+      } catch {
+        alert("공유가 지원되지 않아 카드 다운로드를 대신했어요. (링크는 주소창에서 복사 가능)");
+      }
+    },
+  });
+}
+
 
   async function copyResultText() {
     const lines: string[] = [];
@@ -239,7 +275,9 @@ useEffect(() => {
           >
             카드 이미지 다운로드(PNG)
           </button>
-
+          <button onClick={shareCard} style={{ padding: "10px 14px", borderRadius: 12 }}>
+            공유하기(모바일)
+            </button>
           <button
             onClick={async () => {
                 try {
