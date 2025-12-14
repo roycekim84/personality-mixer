@@ -1,6 +1,7 @@
 import { Routes, Route, Link } from "react-router-dom";
 import ModeA from "./pages/ModeA";
 import ModeB from "./pages/ModeB";
+import Gallery from "./pages/Gallery";
 
 function Home() {
   return (
@@ -48,6 +49,25 @@ function Home() {
         </Link>
       </div>
 
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <Link
+        to="/gallery"
+        style={{
+          textDecoration: "none",
+          color: "inherit",
+          border: "1px solid rgba(0,0,0,0.12)",
+          borderRadius: 14,
+          padding: "10px 14px",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        예시 결과 갤러리 보기 →
+      </Link>
+    </div>
+
+
       <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 16, padding: 14 }}>
         <div style={{ fontWeight: 900, marginBottom: 6 }}>공유</div>
         <div style={{ opacity: 0.8 }}>
@@ -68,6 +88,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/a" element={<ModeA />} />
       <Route path="/b" element={<ModeB />} />
+      <Route path="/gallery" element={<Gallery />} />
     </Routes>
   );
 }

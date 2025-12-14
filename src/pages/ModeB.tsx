@@ -248,6 +248,35 @@ const blendLine = `주 성향은 ${result.topInfo.title}, 보조 성향은 ${res
             </ul>
           </section>
 
+            <section>
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>🗺️ 액션 플랜</div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+                <div>
+                <div style={{ fontWeight: 800, marginBottom: 4 }}>오늘</div>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {result.topInfo.actionPlan.today.map((x) => <li key={x}>{x}</li>)}
+                </ul>
+                </div>
+
+                <div>
+                <div style={{ fontWeight: 800, marginBottom: 4 }}>이번주</div>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {result.topInfo.actionPlan.week.map((x) => <li key={x}>{x}</li>)}
+                </ul>
+                </div>
+
+                <div>
+                <div style={{ fontWeight: 800, marginBottom: 4 }}>이번달</div>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {result.topInfo.actionPlan.month.map((x) => <li key={x}>{x}</li>)}
+                </ul>
+                </div>
+            </div>
+            </section>
+
+
+
           <div style={{ opacity: 0.7, fontSize: 12 }}>
             * 자기이해/참고용 결과(채용/의학적 진단 용도 아님)
           </div>

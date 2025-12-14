@@ -7,6 +7,7 @@ import {
 } from "../data/modeA";
 import { useEffect } from "react";
 import { getSearchParam, setSearchParams, copyToClipboard } from "../utils/urlState";
+import { ACard } from "../components/ACard";
 
 export default function ModeA() {
     
@@ -32,6 +33,14 @@ const [templateShift, setTemplateShift] = useState<number>(() =>
   Number(getSearchParam("tpl") || "0")
 );
 
+const FONT_MAP: Record<string, string> = {
+  system: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
+  serif: "ui-serif, Georgia, 'Times New Roman', serif",
+  mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
+};
+const [fontKey, setFontKey] = useState<string>(() => getSearchParam("font") || "system");
+
+
 useEffect(() => {
   setSearchParams({
     mbti,
@@ -43,6 +52,7 @@ useEffect(() => {
     sht: String(shuffleText || 0),
     shb: String(shuffleBg || 0),
     tpl: String(templateShift || 0),
+    font: fontKey,
   });
 }, [mbti, blood, birth, light1, light2, light3, shuffleText, shuffleBg, templateShift]);
 
@@ -115,156 +125,7 @@ useEffect(() => {
   if (!birth) parts.push("생년월일을 넣으면 별자리가 나와요");
   return parts.join("  ·  ");
 }, [mbti, blood, birth, result.zodiac, result.element]);
-
-
-  function CardOverlay({
-  templateId,
-  headline,
-  title,
-  metaLine,
-  strengthA,
-  strengthB,
-  caution,
-  mission,
-}: {
-  templateId: 0 | 1 | 2;
-  headline: string;
-  title: string;
-  metaLine: string;
-  strengthA: string;
-  strengthB: string;
-  caution: string;
-  mission: string;
-}) {
-  // 공통 텍스트 스타일(가독성)
-  const baseWrap: React.CSSProperties = {
-    position: "absolute",
-    inset: 24,
-    color: "white",
-    display: "grid",
-    gap: 10,
-  };
-
-  // Template 0: 기본(상단 타이틀 + 본문 + 하단 미션)
-  if (templateId === 0) {
-    return (
-      <div style={baseWrap}>
-        <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.08 }}>{headline}</div>
-        <div style={{ opacity: 0.95, fontSize: 16, display: "grid", gap: 4 }}>
-          <div>{title}</div>
-          <div style={{ opacity: 0.9, fontSize: 14 }}>{metaLine}</div>
-        </div>
-
-        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>강점</div>
-          <div style={{ fontSize: 15, lineHeight: 1.4 }}>
-            • {strengthA}
-            <br />• {strengthB}
-          </div>
-
-          <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>주의</div>
-          <div style={{ fontSize: 15, lineHeight: 1.4 }}>• {caution}</div>
-        </div>
-
-        <div style={{ marginTop: "auto", display: "grid", gap: 6 }}>
-          <div style={{ fontSize: 16, fontWeight: 900 }}>오늘의 미션</div>
-          <div style={{ fontSize: 15, lineHeight: 1.4 }}>✅ {mission}</div>
-          <div style={{ opacity: 0.85, fontSize: 12 }}>* 재미용 결과</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Template 1: 좌측 패널(메뉴판 느낌)
-  if (templateId === 1) {
-    return (
-      <div style={baseWrap}>
-        <div
-          style={{
-            width: "58%",
-            maxWidth: 360,
-            background: "rgba(0,0,0,0.45)",
-            borderRadius: 18,
-            padding: 14,
-            display: "grid",
-            gap: 10,
-          }}
-        >
-          <div style={{ fontSize: 12, opacity: 0.85, fontWeight: 800 }}>TODAY’S TYPE</div>
-          <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1.1 }}>{headline}</div>
-          <div style={{ opacity: 0.9, fontSize: 14 }}>{title}</div>
-          <div style={{ opacity: 0.75, fontSize: 12 }}>{metaLine}</div>
-
-          <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
-            <div style={{ fontWeight: 900 }}>강점</div>
-            <div style={{ fontSize: 13, lineHeight: 1.35 }}>
-              • {strengthA}
-              <br />• {strengthB}
-            </div>
-
-            <div style={{ fontWeight: 900 }}>미션</div>
-            <div style={{ fontSize: 13, lineHeight: 1.35 }}>✅ {mission}</div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: "auto", opacity: 0.85, fontSize: 12 }}>
-          * 재미용 결과
-        </div>
-      </div>
-    );
-  }
-
-  // Template 2: 배지 + 하단 시트(스티커 느낌)
-  return (
-    <div style={baseWrap}>
-      <div
-        style={{
-          alignSelf: "start",
-          justifySelf: "start",
-          background: "rgba(0,0,0,0.45)",
-          borderRadius: 999,
-          padding: "8px 12px",
-          fontWeight: 900,
-          fontSize: 13,
-        }}
-      >
-        오늘의 타입
-      </div>
-
-      <div style={{ fontSize: 34, fontWeight: 950, lineHeight: 1.05 }}>{headline}</div>
-      <div style={{ opacity: 0.9, fontSize: 14 }}>{metaLine}</div>
-
-      <div style={{ marginTop: "auto" }}>
-        <div
-          style={{
-            background: "rgba(0,0,0,0.50)",
-            borderRadius: 18,
-            padding: 14,
-            display: "grid",
-            gap: 10,
-          }}
-        >
-          <div style={{ fontSize: 15, fontWeight: 900 }}>{title}</div>
-
-          <div style={{ fontSize: 13, lineHeight: 1.35 }}>
-            <b>강점</b> • {strengthA} / {strengthB}
-          </div>
-          <div style={{ fontSize: 13, lineHeight: 1.35 }}>
-            <b>주의</b> • {caution}
-          </div>
-          <div style={{ fontSize: 13, lineHeight: 1.35 }}>
-            <b>미션</b> • ✅ {mission}
-          </div>
-
-          <div style={{ opacity: 0.85, fontSize: 12 }}>* 재미용 결과</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
   
-
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{ display: "grid", gap: 6 }}>
@@ -330,6 +191,15 @@ useEffect(() => {
               <option value="반반">반반</option>
             </select>
           </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            카드 폰트
+            <select value={fontKey} onChange={(e) => setFontKey(e.target.value)}>
+                <option value="system">기본</option>
+                <option value="serif">Serif</option>
+                <option value="mono">Mono</option>
+            </select>
+        </label>
+
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -387,32 +257,9 @@ useEffect(() => {
       </div>
 
       {/* 카드 미리보기 */}
-      <div
-        ref={cardRef}
-        style={{
-            width: "100%",
-            maxWidth: 600,
-            aspectRatio: "4 / 5",
-            position: "relative",
-            borderRadius: 24,
-            overflow: "hidden",
-            backgroundImage: `url(${result.bg})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-        }}
-
-      >
-        {/* 가독성 오버레이 */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.08) 40%, rgba(0,0,0,0.35))",
-          }}
-        />
-
-        <CardOverlay
+      <div ref={cardRef as any}>
+        <ACard
+            bg={result.bg}
             templateId={result.templateId}
             headline={result.headline}
             title={title}
@@ -421,8 +268,10 @@ useEffect(() => {
             strengthB={result.strengthB}
             caution={result.caution}
             mission={result.mission}
+            fontFamily={FONT_MAP[fontKey] ?? FONT_MAP.system}
         />
-      </div>
+        </div>
+
     </div>
   );
 }
