@@ -3,8 +3,7 @@ import * as htmlToImage from "html-to-image";
 import {
   BLOOD_OPTIONS,
   MBTI_OPTIONS,
-  buildModeAResult,
-  type ModeAInput,
+  buildModeAResult
 } from "../data/modeA";
 import { useEffect } from "react";
 import { getSearchParam, setSearchParams, copyToClipboard } from "../utils/urlState";
@@ -205,15 +204,17 @@ useEffect(() => {
       <div
         ref={cardRef}
         style={{
-          width: 600,
-          height: 750,
-          position: "relative",
-          borderRadius: 24,
-          overflow: "hidden",
-          backgroundImage: `url(${result.bg})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+            width: "100%",
+            maxWidth: 600,
+            aspectRatio: "4 / 5",
+            position: "relative",
+            borderRadius: 24,
+            overflow: "hidden",
+            backgroundImage: `url(${result.bg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
         }}
+
       >
         {/* 가독성 오버레이 */}
         <div

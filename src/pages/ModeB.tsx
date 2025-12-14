@@ -1,7 +1,18 @@
-import { useMemo, useState } from "react";
-import { B_QUESTIONS, buildModeBResult, type BChoiceKey, type ModeBAnswers } from "../data/modeB";
-import { useEffect } from "react";
-import { getSearchParam, setSearchParams, copyToClipboard, encodeABC, decodeABC } from "../utils/urlState";
+import { useEffect, useMemo, useState } from "react";
+import {
+  B_QUESTIONS,
+  B_TYPES,
+  buildModeBResult,
+  type BChoiceKey,
+  type ModeBAnswers,
+} from "../data/modeB";
+import {
+  getSearchParam,
+  setSearchParams,
+  copyToClipboard,
+  encodeABC,
+  decodeABC,
+} from "../utils/urlState";
 
 export default function ModeB() {
   const [answers, setAnswers] = useState<ModeBAnswers>(() => {
@@ -20,10 +31,18 @@ export default function ModeB() {
   setSearchParams({ b: encoded });
 }, [answers]);
 
-
-
   const result = useMemo(() => buildModeBResult(answers), [answers]);
+  const ratio = result.total ? result.answeredCount / result.total : 0;
+const confidence =
+  ratio >= 0.9 ? { label: "높음", hint: "답변이 충분해서 추천 신뢰도가 높아요." } :
+  ratio >= 0.6 ? { label: "보통", hint: "대체로 괜찮아요. 몇 개 더 답하면 좋아요." } :
+  { label: "낮음", hint: "아직 정보가 적어요. 더 답하면 정확도가 올라가요." };
+
   const isDone = result.answeredCount === result.total;
+
+const maxScore = Math.max(...result.ranked.map((x) => x.v), 1);
+const blendLine = `주 성향은 ${result.topInfo.title}, 보조 성향은 ${result.secondInfo.title} 쪽이 함께 섞여 있어요.`;
+
 
   function setAnswer(qid: string, key: BChoiceKey) {
     setAnswers((prev) => ({ ...prev, [qid]: key }));
@@ -57,6 +76,8 @@ export default function ModeB() {
     lines.push("* 자기이해/참고용(채용/진단 판단 용도 아님)");
 
     const text = lines.join("\n");
+
+
 
     try {
       await navigator.clipboard.writeText(text);
@@ -131,6 +152,15 @@ export default function ModeB() {
             <div style={{ opacity: 0.7, fontSize: 13 }}>
               2순위 성향: {result.secondInfo.title}
             </div>
+            <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 13, opacity: 0.75 }}>
+                    신뢰도: <b>{confidence.label}</b> · {confidence.hint}
+                </div>
+                <div style={{ height: 8, borderRadius: 999, background: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
+                    <div style={{ width: `${Math.round(ratio * 100)}%`, height: "100%", background: "rgba(0,0,0,0.35)" }} />
+                </div>
+            </div>
+
           </div>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -164,6 +194,32 @@ export default function ModeB() {
         )}
 
         <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+<section>
+  <div style={{ fontWeight: 900, marginBottom: 6 }}>🧩 혼합 설명</div>
+  <div style={{ opacity: 0.85 }}>{blendLine}</div>
+</section>
+
+<section>
+  <div style={{ fontWeight: 900, marginBottom: 8 }}>📊 점수 분포</div>
+  <div style={{ display: "grid", gap: 8 }}>
+    {result.ranked.map(({ k, v }) => (
+      <div key={k} style={{ display: "grid", gap: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, opacity: 0.85 }}>
+          <span>{B_TYPES[k].title}</span>
+          <span>{v}</span>
+        </div>
+        <div style={{ height: 8, borderRadius: 999, background: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
+          <div style={{ width: `${Math.round((v / maxScore) * 100)}%`, height: "100%", background: "rgba(0,0,0,0.35)" }} />
+        </div>
+      </div>
+    ))}
+  </div>
+  <div style={{ opacity: 0.65, fontSize: 12, marginTop: 8 }}>
+    * 점수는 “성향 경향”을 보여주는 참고값이에요.
+  </div>
+</section>
+
+ 
           <section>
             <div style={{ fontWeight: 900, marginBottom: 6 }}>✅ 추천 환경</div>
             <ul style={{ margin: 0, paddingLeft: 18 }}>
