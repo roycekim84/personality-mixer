@@ -1,35 +1,24 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Link } from "react-router-dom";
+import ModeA from "./pages/ModeA";
+import ModeB from "./pages/ModeB";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+export default function App() {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div style={{ padding: 24 }}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <div style={{ display: "grid", gap: 12, maxWidth: 420 }}>
+              <h1>Personality Mixer</h1>
+              <Link to="/a">A 모드 (재미용)</Link>
+              <Link to="/b">B 모드 (신뢰용)</Link>
+            </div>
+          }
+        />
+        <Route path="/a" element={<ModeA />} />
+        <Route path="/b" element={<ModeB />} />
+      </Routes>
+    </div>
+  );
 }
-
-export default App
