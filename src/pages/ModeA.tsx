@@ -1,128 +1,174 @@
 import { useMemo, useRef, useState } from "react";
 import * as htmlToImage from "html-to-image";
-
-const CARD_BG = [
-  "/cards/AutumnLeavesCafe.png",
-  "/cards/CozyMorningCorner.png",
-  "/cards/FoggyMorningMood.png",
-  "/cards/GreenPlantCafe.png",
-  "/cards/IndustrialConcreteCafe.png",
-  "/cards/LibrarylikeQuietCafe.png",
-  "/cards/MinimalWhiteCafe.png",
-  "/cards/NightStudyNeon.png",
-  "/cards/RainyDayWindow.png",
-  "/cards/SeasideCafeWindow.png",
-  "/cards/SpringBlossomPatio.png",
-  "/cards/SummerIcedCoffeeGlow.png",
-  "/cards/SunsetGoldenHour.png",
-  "/cards/WinterSnowSteam.png",
-];
-
-function zodiacFromDate(dateStr: string) {
-  // YYYY-MM-DD
-  const [y, m, d] = dateStr.split("-").map(Number);
-  if (!y || !m || !d) return "";
-  // 별자리(간단)
-  const md = m * 100 + d;
-  if (md >= 321 && md <= 419) return "양자리";
-  if (md >= 420 && md <= 520) return "황소자리";
-  if (md >= 521 && md <= 621) return "쌍둥이자리";
-  if (md >= 622 && md <= 722) return "게자리";
-  if (md >= 723 && md <= 822) return "사자자리";
-  if (md >= 823 && md <= 923) return "처녀자리";
-  if (md >= 924 && md <= 1022) return "천칭자리";
-  if (md >= 1023 && md <= 1122) return "전갈자리";
-  if (md >= 1123 && md <= 1221) return "사수자리";
-  if (md >= 1222 || md <= 119) return "염소자리";
-  if (md >= 120 && md <= 218) return "물병자리";
-  if (md >= 219 && md <= 320) return "물고기자리";
-  return "";
-}
+import {
+  BLOOD_OPTIONS,
+  MBTI_OPTIONS,
+  buildModeAResult,
+  type ModeAInput,
+} from "../data/modeA";
 
 export default function ModeA() {
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const [mbti, setMbti] = useState("");
-  const [blood, setBlood] = useState("");
-  const [birth, setBirth] = useState(""); // YYYY-MM-DD
-  const [light1, setLight1] = useState("카페");
-  const [light2, setLight2] = useState("몰입");
-  const [light3, setLight3] = useState("혼자");
+  // 입력(전부 선택형 + date)
+  const [mbti, setMbti] = useState<string>("");
+  const [blood, setBlood] = useState<string>("");
+  const [birth, setBirth] = useState<string>("");
 
-  const zodiac = useMemo(() => zodiacFromDate(birth), [birth]);
+  const [light1, setLight1] = useState<ModeAInput["light1"]>("카페");
+  const [light2, setLight2] = useState<ModeAInput["light2"]>("몰입");
+  const [light3, setLight3] = useState<ModeAInput["light3"]>("혼자");
 
-  // 간단히: 입력 조합으로 카드 고르기(해시 느낌)
-  const bg = useMemo(() => {
-    const s = `${mbti}|${blood}|${birth}|${light1}|${light2}|${light3}`;
-    let h = 0;
-    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    return CARD_BG[h % CARD_BG.length];
-  }, [mbti, blood, birth, light1, light2, light3]);
+  // 결과 변주용(셔플)
+  const [shuffle, setShuffle] = useState<number>(0);
+
+  const result = useMemo(() => {
+    return buildModeAResult({
+      mbti,
+      blood,
+      birth,
+      light1,
+      light2,
+      light3,
+      shuffle,
+    });
+  }, [mbti, blood, birth, light1, light2, light3, shuffle]);
 
   const title = useMemo(() => {
-    const a = light1 === "카페" ? "카페" : light1 === "집" ? "집" : "조용한 곳";
-    const b = light2 === "몰입" ? "몰입러" : light2 === "루틴" ? "루틴러" : "즉흥러";
-    return `${a}에서 빛나는 ${b}`;
-  }, [light1, light2]);
+    const place = light1 === "카페" ? "카페" : light1 === "집" ? "집" : "도서관";
+    const rhythm = light2 === "몰입" ? "몰입" : light2 === "루틴" ? "루틴" : "즉흥";
+    const energy = light3;
+    return `${place} ${rhythm} · ${energy} 타입`;
+  }, [light1, light2, light3]);
 
   async function downloadCard() {
     if (!cardRef.current) return;
     const dataUrl = await htmlToImage.toPng(cardRef.current, { pixelRatio: 2 });
     const link = document.createElement("a");
-    link.download = "result-card.png";
+    link.download = "A-result-card.png";
     link.href = dataUrl;
     link.click();
   }
 
+  async function copyResultText() {
+    const lines: string[] = [];
+    lines.push(`[A 모드 결과] ${result.headline}`);
+    lines.push(`- ${title}`);
+    if (birth) lines.push(`- 생년월일: ${birth}${result.zodiac ? ` (${result.zodiac}, ${result.element} 원소)` : ""}`);
+    if (mbti) lines.push(`- MBTI: ${mbti}`);
+    if (blood) lines.push(`- 혈액형: ${blood}형`);
+    lines.push(`- 강점: ${result.strengthA} / ${result.strengthB}`);
+    lines.push(`- 주의: ${result.caution}`);
+    lines.push(`- 오늘의 미션: ${result.mission}`);
+    lines.push(`* 재미용 결과(진단/채용 판단 용도 아님)`);
+
+    const text = lines.join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("결과 텍스트를 복사했어요!");
+    } catch {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("결과 텍스트를 복사했어요!");
+    }
+  }
+
+  const canShowZodiacHint = birth.length > 0;
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <h2>A 모드 (재미용)</h2>
+      <div style={{ display: "grid", gap: 6 }}>
+        <h2 style={{ margin: 0 }}>A 모드 (재미용)</h2>
+        <div style={{ opacity: 0.8 }}>
+          선택 + 자동 계산만으로 “오늘의 캐릭터”를 뽑아줘요.
+        </div>
+      </div>
 
-      <div style={{ display: "grid", gap: 8, maxWidth: 520 }}>
-        <label>
+      {/* 입력 */}
+      <div style={{ display: "grid", gap: 10, maxWidth: 560 }}>
+        <label style={{ display: "grid", gap: 6 }}>
           MBTI (선택)
-          <input value={mbti} onChange={(e) => setMbti(e.target.value.toUpperCase())} placeholder="예: INFP" />
-        </label>
-        <label>
-          혈액형 (선택)
-          <select value={blood} onChange={(e) => setBlood(e.target.value)}>
-            <option value="">선택 안 함</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="O">O</option>
-            <option value="AB">AB</option>
+          <select value={mbti} onChange={(e) => setMbti(e.target.value)}>
+            {MBTI_OPTIONS.map((v) => (
+              <option key={v} value={v}>
+                {v === "" ? "선택 안 함" : v}
+              </option>
+            ))}
           </select>
         </label>
-        <label>
+
+        <label style={{ display: "grid", gap: 6 }}>
+          혈액형 (선택)
+          <select value={blood} onChange={(e) => setBlood(e.target.value)}>
+            {BLOOD_OPTIONS.map((v) => (
+              <option key={v} value={v}>
+                {v === "" ? "선택 안 함" : `${v}형`}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label style={{ display: "grid", gap: 6 }}>
           생년월일 (별자리 자동)
           <input type="date" value={birth} onChange={(e) => setBirth(e.target.value)} />
         </label>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-          <label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <label style={{ display: "grid", gap: 6 }}>
             선호 장소
-            <select value={light1} onChange={(e) => setLight1(e.target.value)}>
-              <option>카페</option>
-              <option>집</option>
-              <option>도서관</option>
+            <select value={light1} onChange={(e) => setLight1(e.target.value as any)}>
+              <option value="카페">카페</option>
+              <option value="집">집</option>
+              <option value="도서관">도서관</option>
             </select>
           </label>
-          <label>
+
+          <label style={{ display: "grid", gap: 6 }}>
             작업 리듬
-            <select value={light2} onChange={(e) => setLight2(e.target.value)}>
-              <option>몰입</option>
-              <option>루틴</option>
-              <option>즉흥</option>
+            <select value={light2} onChange={(e) => setLight2(e.target.value as any)}>
+              <option value="몰입">몰입</option>
+              <option value="루틴">루틴</option>
+              <option value="즉흥">즉흥</option>
             </select>
           </label>
-          <label>
+
+          <label style={{ display: "grid", gap: 6 }}>
             에너지
-            <select value={light3} onChange={(e) => setLight3(e.target.value)}>
-              <option>혼자</option>
-              <option>사람들과</option>
-              <option>반반</option>
+            <select value={light3} onChange={(e) => setLight3(e.target.value as any)}>
+              <option value="혼자">혼자</option>
+              <option value="사람들과">사람들과</option>
+              <option value="반반">반반</option>
             </select>
           </label>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            onClick={() => setShuffle((s) => s + 1)}
+            style={{ padding: "10px 14px", borderRadius: 12 }}
+          >
+            결과 다시 뽑기(셔플)
+          </button>
+
+          <button
+            onClick={copyResultText}
+            style={{ padding: "10px 14px", borderRadius: 12 }}
+          >
+            결과 텍스트 복사
+          </button>
+
+          <button
+            onClick={downloadCard}
+            style={{ padding: "10px 14px", borderRadius: 12 }}
+          >
+            카드 이미지 다운로드(PNG)
+          </button>
         </div>
       </div>
 
@@ -135,42 +181,66 @@ export default function ModeA() {
           position: "relative",
           borderRadius: 24,
           overflow: "hidden",
-          backgroundImage: `url(${bg})`,
+          backgroundImage: `url(${result.bg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        {/* 텍스트 가독성용 오버레이 */}
+        {/* 가독성 오버레이 */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.25))",
+              "linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.08) 40%, rgba(0,0,0,0.35))",
           }}
         />
-        <div style={{ position: "absolute", inset: 24, color: "white", display: "grid", gap: 10 }}>
-          <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.1 }}>{title}</div>
-          <div style={{ opacity: 0.95, fontSize: 16 }}>
-            {mbti ? `MBTI: ${mbti}  · ` : ""}
-            {blood ? `혈액형: ${blood}형  · ` : ""}
-            {zodiac ? `별자리: ${zodiac}` : birth ? "별자리 계산중…" : "생년월일을 넣으면 별자리가 나와요"}
+        <div
+          style={{
+            position: "absolute",
+            inset: 24,
+            color: "white",
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.08 }}>
+            {result.headline}
           </div>
 
-          <div style={{ marginTop: "auto", display: "grid", gap: 6, fontSize: 16 }}>
-            <div>✅ 오늘의 키워드: {light1} / {light2} / {light3}</div>
-            <div>⭐ 추천 미션: 25분 집중 + 5분 리셋 (한 번만)</div>
-            <div style={{ opacity: 0.9, fontSize: 13 }}>
-              * 재미용 결과 카드 (채용/진단 용도 아님)
+          <div style={{ opacity: 0.95, fontSize: 16, display: "grid", gap: 4 }}>
+            <div>{title}</div>
+            <div style={{ opacity: 0.9, fontSize: 14 }}>
+              {mbti ? `MBTI: ${mbti}  · ` : ""}
+              {blood ? `혈액형: ${blood}형  · ` : ""}
+              {canShowZodiacHint
+                ? result.zodiac
+                  ? `별자리: ${result.zodiac} (${result.element})`
+                  : "별자리 계산중…"
+                : "생년월일을 넣으면 별자리가 나와요"}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            <div style={{ fontSize: 16, fontWeight: 800 }}>강점</div>
+            <div style={{ fontSize: 15, lineHeight: 1.4 }}>
+              • {result.strengthA}
+              <br />• {result.strengthB}
+            </div>
+
+            <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>주의</div>
+            <div style={{ fontSize: 15, lineHeight: 1.4 }}>• {result.caution}</div>
+          </div>
+
+          <div style={{ marginTop: "auto", display: "grid", gap: 6 }}>
+            <div style={{ fontSize: 16, fontWeight: 900 }}>오늘의 미션</div>
+            <div style={{ fontSize: 15, lineHeight: 1.4 }}>✅ {result.mission}</div>
+
+            <div style={{ opacity: 0.85, fontSize: 12 }}>
+              * 재미용 결과 카드 (진단/채용/의학적 판단 용도 아님)
             </div>
           </div>
         </div>
-      </div>
-
-      <div>
-        <button onClick={downloadCard} style={{ padding: "10px 16px", borderRadius: 12 }}>
-          카드 이미지 다운로드(PNG)
-        </button>
       </div>
     </div>
   );
