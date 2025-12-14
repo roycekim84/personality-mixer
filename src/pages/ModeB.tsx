@@ -1,8 +1,26 @@
 import { useMemo, useState } from "react";
 import { B_QUESTIONS, buildModeBResult, type BChoiceKey, type ModeBAnswers } from "../data/modeB";
+import { useEffect } from "react";
+import { getSearchParam, setSearchParams, copyToClipboard, encodeABC, decodeABC } from "../utils/urlState";
 
 export default function ModeB() {
-  const [answers, setAnswers] = useState<ModeBAnswers>({});
+  const [answers, setAnswers] = useState<ModeBAnswers>(() => {
+    const encoded = getSearchParam("b");
+    const arr = decodeABC(encoded, B_QUESTIONS.length);
+    const obj: ModeBAnswers = {};
+    B_QUESTIONS.forEach((q, i) => {
+        const v = arr[i];
+        if (v === "A" || v === "B" || v === "C") obj[q.id] = v as any;
+    });
+    return obj;
+  });
+  useEffect(() => {
+  const arr = B_QUESTIONS.map((q) => answers[q.id] ?? "");
+  const encoded = encodeABC(arr);
+  setSearchParams({ b: encoded });
+}, [answers]);
+
+
 
   const result = useMemo(() => buildModeBResult(answers), [answers]);
   const isDone = result.answeredCount === result.total;
@@ -122,6 +140,20 @@ export default function ModeB() {
             <button onClick={resetAll} style={{ padding: "10px 14px", borderRadius: 12 }}>
               초기화
             </button>
+            <button
+            onClick={async () => {
+                try {
+                await copyToClipboard(window.location.href);
+                alert("공유 링크를 복사했어요!");
+                } catch {
+                alert("복사 권한이 없어요. 주소창 URL을 직접 복사해 주세요.");
+                }
+            }}
+            style={{ padding: "10px 14px", borderRadius: 12 }}
+            >
+            공유 링크 복사
+            </button>
+
           </div>
         </div>
 

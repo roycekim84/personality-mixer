@@ -6,21 +6,34 @@ import {
   buildModeAResult,
   type ModeAInput,
 } from "../data/modeA";
+import { useEffect } from "react";
+import { getSearchParam, setSearchParams, copyToClipboard } from "../utils/urlState";
 
 export default function ModeA() {
+    
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // 입력(전부 선택형 + date)
-  const [mbti, setMbti] = useState<string>("");
-  const [blood, setBlood] = useState<string>("");
-  const [birth, setBirth] = useState<string>("");
+const [mbti, setMbti] = useState<string>(() => getSearchParam("mbti"));
+const [blood, setBlood] = useState<string>(() => getSearchParam("blood"));
+const [birth, setBirth] = useState<string>(() => getSearchParam("birth"));
 
-  const [light1, setLight1] = useState<ModeAInput["light1"]>("카페");
-  const [light2, setLight2] = useState<ModeAInput["light2"]>("몰입");
-  const [light3, setLight3] = useState<ModeAInput["light3"]>("혼자");
+const [light1, setLight1] = useState<any>(() => (getSearchParam("l1") as any) || "카페");
+const [light2, setLight2] = useState<any>(() => (getSearchParam("l2") as any) || "몰입");
+const [light3, setLight3] = useState<any>(() => (getSearchParam("l3") as any) || "혼자");
 
-  // 결과 변주용(셔플)
-  const [shuffle, setShuffle] = useState<number>(0);
+const [shuffle, setShuffle] = useState<number>(() => Number(getSearchParam("sh") || "0"));
+
+useEffect(() => {
+  setSearchParams({
+    mbti,
+    blood,
+    birth,
+    l1: light1,
+    l2: light2,
+    l3: light3,
+    sh: String(shuffle || 0),
+  });
+}, [mbti, blood, birth, light1, light2, light3, shuffle]);
 
   const result = useMemo(() => {
     return buildModeAResult({
@@ -80,6 +93,8 @@ export default function ModeA() {
   }
 
   const canShowZodiacHint = birth.length > 0;
+
+  
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -169,6 +184,20 @@ export default function ModeA() {
           >
             카드 이미지 다운로드(PNG)
           </button>
+
+          <button
+            onClick={async () => {
+                try {
+                await copyToClipboard(window.location.href);
+                alert("공유 링크를 복사했어요!");
+                } catch {
+                alert("복사 권한이 없어요. 주소창 URL을 직접 복사해 주세요.");
+                }
+            }}
+            style={{ padding: "10px 14px", borderRadius: 12 }}
+            >
+            공유 링크 복사
+            </button>
         </div>
       </div>
 
