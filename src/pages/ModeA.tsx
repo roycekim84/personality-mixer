@@ -36,6 +36,7 @@ export default function ModeA() {
 
   const [fontKey, setFontKey] = useState<string>(() => getSearchParam("font") || "system");
 
+  
   useEffect(() => {
     setSearchParams({
       mbti,
@@ -80,9 +81,25 @@ export default function ModeA() {
     return parts.join("  ·  ");
   }, [mbti, blood, birth, result.zodiac, result.element]);
 
+  const bgAbs = useMemo(() => {
+  try {
+    return new URL(result.bg, window.location.href).toString();
+  } catch {
+    return result.bg;
+  }
+}, [result.bg]);
+
   async function downloadCard() {
     if (!cardRef.current) return;
-    const dataUrl = await htmlToImage.toPng(cardRef.current, { pixelRatio: 2 });
+
+    await (document as any).fonts?.ready?.catch?.(() => {});
+    await waitForImages(cardRef.current);
+
+    // iOS 안정화용으로 옵션도 같이
+    const dataUrl = await htmlToImage.toPng(cardRef.current, {
+      pixelRatio: 2,
+      cacheBust: true,
+    });
     const link = document.createElement("a");
     link.download = "A-result-card.png";
     link.href = dataUrl;
@@ -92,7 +109,14 @@ export default function ModeA() {
   async function shareCard() {
     if (!cardRef.current) return;
 
-    const dataUrl = await htmlToImage.toPng(cardRef.current, { pixelRatio: 2 });
+    await (document as any).fonts?.ready?.catch?.(() => {});
+    await waitForImages(cardRef.current);
+
+    // iOS 안정화용으로 옵션도 같이
+    const dataUrl = await htmlToImage.toPng(cardRef.current, {
+      pixelRatio: 2,
+      cacheBust: true,
+    });
     const blob = dataUrlToBlob(dataUrl);
     const file = new File([blob], "A-result-card.png", { type: "image/png" });
 
@@ -146,6 +170,23 @@ export default function ModeA() {
       alert("결과 텍스트를 복사했어요!");
     }
   }
+
+  async function waitForImages(root: HTMLElement) {
+  const imgs = Array.from(root.querySelectorAll("img"));
+  await Promise.all(
+    imgs.map((img) => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      });
+    })
+  );
+}
+
+
+  
 
   return (
     <Container>
@@ -287,7 +328,7 @@ export default function ModeA() {
             <Card pad={false}>
               <div ref={cardRef as any} style={{ padding: 12 }}>
                 <ACard
-                  bg={result.bg}
+                  bg={bgAbs}
                   templateId={result.templateId}
                   headline={result.headline}
                   title={title}

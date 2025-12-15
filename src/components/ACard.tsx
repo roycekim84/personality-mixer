@@ -44,12 +44,26 @@ export function ACard({
         position: "relative",
         borderRadius: 24,
         overflow: "hidden",
-        backgroundImage: `url(${bg})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        //backgroundImage: `url(${bg})`,
+        //backgroundSize: "cover",
+        //backgroundPosition: "center",
         fontFamily,
       }}
     >
+      {/* ✅ 배경을 img로 */}
+    <img
+      src={bg}
+      crossOrigin="anonymous"
+      alt=""
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+      }}
+    />
+     {/* 오버레이 */}
       <div style={{ position: "absolute", inset: 0, background: overlay }} />
       <CardOverlay
         templateId={templateId}
