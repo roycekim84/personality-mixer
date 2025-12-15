@@ -54,6 +54,9 @@ export function ACard({
     <img
       src={bg}
       crossOrigin="anonymous"
+      referrerPolicy="no-referrer"
+      loading="eager"
+      decoding="sync"
       alt=""
       style={{
         position: "absolute",

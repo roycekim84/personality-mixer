@@ -51,6 +51,7 @@ function Home() {
           </p>
         </Card>
       </div>
+      <div className="help">build: {__APP_VERSION__}</div>
     </Container>
   );
 }

@@ -319,6 +319,7 @@ export default function ModeB() {
           </div>
         </div>
       </div>
+      <div className="help">build: {__APP_VERSION__}</div>
     </Container>
   );
 }

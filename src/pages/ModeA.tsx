@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as htmlToImage from "html-to-image";
 import { Link } from "react-router-dom";
 
 import { BLOOD_OPTIONS, MBTI_OPTIONS, buildModeAResult } from "../data/modeA";
 import { getSearchParam, setSearchParams, copyToClipboard } from "../utils/urlState";
-import { dataUrlToBlob, shareFileOrFallback } from "../utils/share";
+import { shareFileOrFallback } from "../utils/share";
 import { ACard } from "../components/ACard";
 import { Container, Card, Header } from "../components/ui";
+import { withVersion, fetchAsDataUrl, nextPaint, waitForImages, nodeToBlob } from "../utils/capture";
+
 
 type Light1 = "카페" | "집" | "도서관";
 type Light2 = "몰입" | "루틴" | "즉흥";
@@ -35,6 +36,9 @@ export default function ModeA() {
   const [templateShift, setTemplateShift] = useState<number>(() => Number(getSearchParam("tpl") || "0"));
 
   const [fontKey, setFontKey] = useState<string>(() => getSearchParam("font") || "system");
+
+  const [captureBg, setCaptureBg] = useState<string | null>(null);
+
 
   
   useEffect(() => {
@@ -81,68 +85,71 @@ export default function ModeA() {
     return parts.join("  ·  ");
   }, [mbti, blood, birth, result.zodiac, result.element]);
 
-  const bgAbs = useMemo(() => {
-  try {
-    return new URL(result.bg, window.location.href).toString();
-  } catch {
-    return result.bg;
-  }
-}, [result.bg]);
+  const bgAbs = useMemo(() => withVersion(new URL(result.bg, window.location.href).toString()), [result.bg]);
+  const bgForCard = captureBg ?? bgAbs;
 
-  async function downloadCard() {
-    if (!cardRef.current) return;
+  async function captureCardBlob() {
+  if (!cardRef.current) throw new Error("no card");
 
-    await (document as any).fonts?.ready?.catch?.(() => {});
-    await waitForImages(cardRef.current);
+  // 1) bg를 강제로 dataURL로 인라인(가장 중요)
+  const bgData = await fetchAsDataUrl(bgAbs);
+  setCaptureBg(bgData);
 
-    // iOS 안정화용으로 옵션도 같이
-    const dataUrl = await htmlToImage.toPng(cardRef.current, {
-      pixelRatio: 2,
-      cacheBust: true,
-    });
-    const link = document.createElement("a");
-    link.download = "A-result-card.png";
-    link.href = dataUrl;
-    link.click();
-  }
+  // 2) 렌더 반영 + 폰트/이미지 로딩 대기
+  await (document as any).fonts?.ready?.catch?.(() => {});
+  await nextPaint();
+  await waitForImages(cardRef.current);
 
-  async function shareCard() {
-    if (!cardRef.current) return;
+  // 3) 캡처(blob)
+  const blob = await nodeToBlob(cardRef.current);
 
-    await (document as any).fonts?.ready?.catch?.(() => {});
-    await waitForImages(cardRef.current);
+  // 4) 원복
+  setCaptureBg(null);
 
-    // iOS 안정화용으로 옵션도 같이
-    const dataUrl = await htmlToImage.toPng(cardRef.current, {
-      pixelRatio: 2,
-      cacheBust: true,
-    });
-    const blob = dataUrlToBlob(dataUrl);
-    const file = new File([blob], "A-result-card.png", { type: "image/png" });
+  return blob;
+}
 
-    const shareText = `${result.headline}\n${title}\n(재미용 결과 카드)`;
-    const shareUrl = window.location.href;
+async function downloadCard() {
+  const blob = await captureCardBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "A-result-card.png";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
-    await shareFileOrFallback({
-      file,
-      title: "Personality Mixer - A 결과",
-      text: shareText,
-      url: shareUrl,
-      onFallback: async () => {
-        const link = document.createElement("a");
-        link.download = "A-result-card.png";
-        link.href = dataUrl;
-        link.click();
+async function shareCard() {
+  const blob = await captureCardBlob();
+  const file = new File([blob], "A-result-card.png", { type: "image/png" });
 
-        try {
-          await navigator.clipboard.writeText(shareUrl);
-          alert("공유가 지원되지 않아 카드 다운로드 + 링크 복사를 대신했어요!");
-        } catch {
-          alert("공유가 지원되지 않아 카드 다운로드를 대신했어요. (링크는 주소창에서 복사 가능)");
-        }
-      },
-    });
-  }
+  const shareText = `${result.headline}\n${title}\n(재미용 결과 카드)`;
+  const shareUrl = window.location.href;
+
+  await shareFileOrFallback({
+    file,
+    title: "Personality Mixer - A 결과",
+    text: shareText,
+    url: shareUrl,
+    onFallback: async () => {
+      // 공유 미지원/실패 시 다운로드로
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "A-result-card.png";
+      a.click();
+      URL.revokeObjectURL(url);
+
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("공유가 지원되지 않아 카드 다운로드 + 링크 복사를 대신했어요!");
+      } catch {
+        alert("공유가 지원되지 않아 카드 다운로드를 대신했어요.");
+      }
+    },
+  });
+}
+
 
   async function copyResultText() {
     const lines: string[] = [];
@@ -169,24 +176,7 @@ export default function ModeA() {
       document.body.removeChild(ta);
       alert("결과 텍스트를 복사했어요!");
     }
-  }
-
-  async function waitForImages(root: HTMLElement) {
-  const imgs = Array.from(root.querySelectorAll("img"));
-  await Promise.all(
-    imgs.map((img) => {
-      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-      return new Promise<void>((resolve) => {
-        const done = () => resolve();
-        img.addEventListener("load", done, { once: true });
-        img.addEventListener("error", done, { once: true });
-      });
-    })
-  );
-}
-
-
-  
+  }  
 
   return (
     <Container>
@@ -328,7 +318,7 @@ export default function ModeA() {
             <Card pad={false}>
               <div ref={cardRef as any} style={{ padding: 12 }}>
                 <ACard
-                  bg={bgAbs}
+                  bg={bgForCard}
                   templateId={result.templateId}
                   headline={result.headline}
                   title={title}
@@ -351,6 +341,7 @@ export default function ModeA() {
           </div>
         </div>
       </div>
+      <div className="help">build: {__APP_VERSION__}</div>
     </Container>
   );
 }
