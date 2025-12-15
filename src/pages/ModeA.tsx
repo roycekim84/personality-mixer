@@ -39,6 +39,10 @@ export default function ModeA() {
 
   const [captureBg, setCaptureBg] = useState<string | null>(null);
 
+  const exportBlobRef = useRef<Blob | null>(null);
+  const exportBusyRef = useRef(false);
+  const [exportReady, setExportReady] = useState(false);
+
 
   
   useEffect(() => {
@@ -88,7 +92,16 @@ export default function ModeA() {
   const bgAbs = useMemo(() => withVersion(new URL(result.bg, window.location.href).toString()), [result.bg]);
   const bgForCard = captureBg ?? bgAbs;
 
-  async function captureCardBlob() {
+useEffect(() => {
+  // debounce 느낌으로 살짝 늦게(연속 셔플 대응)
+  const t = window.setTimeout(() => {
+    prepareExportBlob();
+  }, 250);
+  return () => window.clearTimeout(t);
+}, [result.bg, result.headline, result.strengthA, result.strengthB, result.caution, result.mission, fontKey, templateShift, shuffleBg, shuffleText]);
+
+
+async function captureCardBlob() {
   if (!cardRef.current) throw new Error("no card");
 
   // 1) bg를 강제로 dataURL로 인라인(가장 중요)
@@ -110,7 +123,10 @@ export default function ModeA() {
 }
 
 async function downloadCard() {
-  const blob = await captureCardBlob();
+  if (!exportBlobRef.current) await prepareExportBlob();
+  const blob = exportBlobRef.current;
+  if (!blob) return;
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -120,35 +136,37 @@ async function downloadCard() {
 }
 
 async function shareCard() {
-  const blob = await captureCardBlob();
-  const file = new File([blob], "A-result-card.png", { type: "image/png" });
-
-  const shareText = `${result.headline}\n${title}\n(재미용 결과 카드)`;
   const shareUrl = window.location.href;
 
+  // 준비 안 됐으면: 이미지 대신 링크만 우선 공유(제스처 살리기)
+  if (!exportBlobRef.current) {
+    const navAny = navigator as any;
+    if (navAny.share) {
+      try {
+        await navAny.share({ title: "Personality Mixer - A 결과", text: "A 결과 링크", url: shareUrl });
+        // 공유 끝났으면 뒤에서 미리 준비 시작
+        prepareExportBlob();
+        return;
+      } catch {
+        // 무시하고 fallback
+      }
+    }
+    await prepareExportBlob();
+  }
+
+  const blob = exportBlobRef.current;
+  if (!blob) return;
+
+  const file = new File([blob], "A-result-card.png", { type: "image/png" });
   await shareFileOrFallback({
     file,
     title: "Personality Mixer - A 결과",
-    text: shareText,
+    text: `${result.headline}\n${title}`,
     url: shareUrl,
-    onFallback: async () => {
-      // 공유 미지원/실패 시 다운로드로
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "A-result-card.png";
-      a.click();
-      URL.revokeObjectURL(url);
-
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert("공유가 지원되지 않아 카드 다운로드 + 링크 복사를 대신했어요!");
-      } catch {
-        alert("공유가 지원되지 않아 카드 다운로드를 대신했어요.");
-      }
-    },
+    onFallback: () => downloadCard(),
   });
 }
+
 
 
   async function copyResultText() {
@@ -177,6 +195,30 @@ async function shareCard() {
       alert("결과 텍스트를 복사했어요!");
     }
   }  
+
+  async function prepareExportBlob() {
+  if (!cardRef.current) return;
+  if (exportBusyRef.current) return;
+
+  exportBusyRef.current = true;
+  setExportReady(false);
+
+  try {
+    const blob = await captureCardBlob(); // 네가 만든 안정화 캡처(배경 dataURL 인라인 포함)
+    // 너무 작은 blob이면(대부분 배경 누락/실패) 한 번 더 재시도
+    if (blob.size < 40_000) {
+      const blob2 = await captureCardBlob();
+      exportBlobRef.current = blob2;
+    } else {
+      exportBlobRef.current = blob;
+    }
+    setExportReady(true);
+  } finally {
+    exportBusyRef.current = false;
+  }
+}
+
+
 
   return (
     <Container>
@@ -298,6 +340,7 @@ async function shareCard() {
                     </button>
                   </div>
                 </div>
+                <div className="help">내보내기 준비: {exportReady ? "완료" : "생성중…"} · build: {__APP_VERSION__}</div>
               </div>
             </Card>
 
